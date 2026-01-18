@@ -1,0 +1,15 @@
+[project]
+name = "graph-rag"
+version = "0.1.0"
+description = "Graph RAG implementation using LangChain and Neo4j"
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "langchain-neo4j",
+    "langchain-openai>=1.1.7",
+    "python-dotenv",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
