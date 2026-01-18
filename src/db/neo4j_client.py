@@ -2,7 +2,7 @@ from contextlib import AbstractContextManager
 
 from dotenv import load_dotenv
 
-from app.neo4j_config import Neo4jConfig
+from src.config.neo4j_config import Neo4jConfig
 
 load_dotenv()
 
@@ -81,5 +81,3 @@ class Neo4jClient(AbstractContextManager):
     def __enter__(self):
         self.connect()
         return self
-
-
