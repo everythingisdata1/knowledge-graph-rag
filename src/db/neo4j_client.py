@@ -1,18 +1,13 @@
+import logging
 from contextlib import AbstractContextManager
 
 from dotenv import load_dotenv
+from langchain_neo4j import Neo4jGraph
 
 from src.config.neo4j_config import Neo4jConfig
 
 load_dotenv()
 
-import logging
-from langchain_neo4j import Neo4jGraph
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
-)
 log = logging.getLogger(__name__)
 
 
