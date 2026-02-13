@@ -16,7 +16,7 @@ with Neo4jClient(load_schema=True) as client:
     result = client.run_query("RETURN 1 AS ok")
     log.info("Test query result: %s", result)
 
-    question = "Find all customers who have made transactions over $200 "
+    question = "Find all customers who has a loan with PD value greater than 0.5 and return their names"
 
     prompt_template_d = PromptTemplate(
         input_variables=["schema", "question"],
@@ -33,11 +33,11 @@ with Neo4jClient(load_schema=True) as client:
     )
     llm = ChatOpenAI(model="gpt-4", temperature=0)
     cypher_query = prompt_template_d.format(schema=client.schema, question=question)
-    log.info(f"Prompt to LLM: {cypher_query}")
+    print(f"Prompt to LLM: {cypher_query}")
     cypher = llm.invoke(cypher_query)
-    log.info(f"Generated Cypher Query: {cypher.content}")
+    print(f"Generated Cypher Query: {cypher.content}")
 
     customers = client.run_query(cypher.content)
-    log.info(f"Query Result: {customers}")
+    print(f"Query Result: {customers}")
     for record in customers:
-        log.info(f"Customer: {record['c.name']}")
+        print(f"Customer: {record['c.name']}")

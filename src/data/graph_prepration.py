@@ -1,7 +1,9 @@
 import logging
 
-from src.data.mock_data import stress_test_data
+from src.data.sample_data import stress_test_data
 from src.db.neo4j_client import Neo4jClient
+from src.repos.customer_repos import CustomerRepository
+from src.repos.loan_repos import LoanRepository
 
 log = logging.getLogger(__name__)
 
@@ -16,53 +18,23 @@ class StressDataPreparation:
         for scenario in stress_test_data['SCENARIOS']:
             self._client.run_query(query, params={'params': scenario})
 
-    def create_portfolio_nodes(self):
         log.info("Creating Portfolio Nodes in Neo4j")
         query = f""" CREATE (p:Portfolio) set p+= $params RETURN p """
         for portfolio in stress_test_data['PORTFOLIOS']:
             self._client.run_query(query, params={'params': portfolio})
 
-    def create_customer_nodes(self):
-        log.info("Creating Customer Nodes in Neo4j")
-        query = f""" UNWIND range(1,5) as id  
-                    CREATE (c:Customer) 
-                    set c.customerId= 'CUST_' + toString(id)
-                    set c.name= 'Customer_' + toString(id)
-                    set c.riskRating= CASE
-                        WHEN id %2 =0 THEN 'Low'
-                        WHEN id <= 7 THEN 'Medium'
-                        ELSE 'High'
-                      END
-                    RETURN c """
-        self._client.run_query(query)
+        log.info(f"Creating Customer Nodes in Neo4j")
+        CustomerRepository(self._client).add_customers([])
 
-    def create_loan_nodes(self):
-        log.info("Creating Loan Nodes in Neo4j")
-        query = f""" UNWIND range(1,10) as id 
-                    CREATE (l:Loan)  
-                    set l.loanId= 'LOAN_' + toString(id)
-                    set l.type= CASE 
-                        WHEN id<= 2 THEN 'Personal Loan'
-                        WHEN id <=4 THEN 'Home Loan'
-                        ELSE 'Auto Loan'
-                        END
-                    set l.exposure= CASE 
-                           WHEN id <= 2 THEN 300000 + id * 20000
-                           WHEN id <= 4 THEN 1500000 + id * 100000
-                           ELSE 600000 + id * 30000
-                           END
-                    RETURN l """
-        self._client.run_query(query)
-        log.info(f"Created Loan nodes in Neo4j")
+        log.info(f"Creating Loan Nodes in Neo4j")
+        LoanRepository(self._client).add_loans([])
 
-    def customer_loan_relationships(self):
         log.info("Creating CUSTOMER_HAS_LOAN relationships in Neo4j")
         query = f""" match (c:Customer) , (l:Loan)
           where toInteger(substring(c.customerId,5))=toInteger(substring(l.loanId,5)) % 10 +1
           CREATE (c)-[r:CUSTOMER_HAS_LOAN]->(l) RETURN c, l """
         self._client.run_query(query)
 
-    def loan_portfolio_relationships(self):
         log.info("Creating LOAN_IN_PORTFOLIO relationships in Neo4j")
         query = """ match (l:Loan) with l, 
                     CASE 
@@ -71,11 +43,10 @@ class StressDataPreparation:
                     ELSE 'Auto' 
                     END 
                     as portfolio_name 
-                    match (p:Portfolio {name:l.portfolio_name} )
+                    match (p:Portfolio {name:portfolio_name} )
                     CREATE (l)-[r:LOAN_BELONGS]->(p) RETURN l, p """
         self._client.run_query(query)
 
-    def loan_pd_relationships(self):
         log.info("Creating LOAN_HAS_PD relationships in Neo4j")
         query = """ match (l:Loan) 
                     CREATE (pd:PD {
@@ -89,7 +60,6 @@ class StressDataPreparation:
                     CREATE (l)-[r:LOAN_HAS_PD]->(pd) RETURN l, pd """
         self._client.run_query(query)
 
-    def loan_lgd_relationships(self):
         log.info("Creating LOAN_HAS_LGD relationships in Neo4j")
         query = """ match (l:Loan) 
         CREATE (lgd:LGD {
@@ -103,7 +73,6 @@ class StressDataPreparation:
         create (l)-[r:LOAN_HAS_LGD]->(lgd) RETURN l, lgd """
         self._client.run_query(query)
 
-    def loan_ecl_relationship(self):
         log.info("Creating LOAN_HAS_ECL relationships in Neo4j Exposure * PD * LGD")
         query = """ match (l:Loan)-[r1:LOAN_HAS_PD]->(pd:PD),(l)-[r2:LOAN_HAS_LGD]->(lgd:LGD)  
                     with l,    pd, lgd, round(l.exposure * pd.value * lgd.value,2) as ecl_value
@@ -118,10 +87,9 @@ class StressDataPreparation:
                     with l, ecl
                     match (s:Scenario {name: '2024_Severe_Stress'}), (m:RiskModel {name: 'IFRS9_ECL_Model'})
                     CREATE 
-                    (l)-[r1:LOAN_HAS_ECL {scenario:s.name, modelVersion:m.version}]->(ecl),
-                    (ecl)-[r2:CALCULATED_UNDER]->(s),
-                    (s)-[r3:USES_MODEL]->(r)
-                    RETURN l, ecl, s, r """
+                    (l)-[r1:LOAN_HAS_ECL {scenario:s.name, modelVersion:m.version}]->(ecl)-[r2:UNDER_SCENARIO]->(s),
+                    (s)-[r3:USES_MODEL]->(m)
+                    RETURN l, ecl, s, m """
         self._client.run_query(query)
 
 
@@ -130,11 +98,3 @@ if __name__ == '__main__':
         data_prep = StressDataPreparation(client)
 
         data_prep.create_stress_scenarios()
-        data_prep.create_portfolio_nodes()
-        data_prep.create_customer_nodes()
-        data_prep.create_loan_nodes()
-        data_prep.customer_loan_relationships()
-        data_prep.loan_portfolio_relationships()
-        data_prep.loan_pd_relationships()
-        data_prep.loan_lgd_relationships()
-        data_prep.loan_ecl_relationship()
