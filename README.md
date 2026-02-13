@@ -15,7 +15,6 @@ The solution ensures **accuracy, explainability, and reduced hallucination** by 
 * APOC-based schema introspection
 * LLM-constrained querying (no invented labels/properties)
 * Clean `src/`-based Python architecture
-* Production-ready configuration and lifecycle management
 
 ---
 
@@ -98,4 +97,5 @@ Java, AWS & AI Engineering Lead
 ## License
 
 Internal / Educational Use
+
 
