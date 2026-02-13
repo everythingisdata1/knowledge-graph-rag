@@ -36,7 +36,7 @@ The solution ensures **accuracy, explainability, and reduced hallucination** by 
 2. APOC exposes schema metadata
 3. LangChain injects schema + user question
 4. LLM generates valid Cypher
-5. Neo4j executes query and returns results
+5. Neo4j executes the query and returns the results
 
 ---
 
@@ -70,7 +70,7 @@ OPENAI_API_KEY=*****
 ## Run
 
 ```bash
-pip install -e .
+uv sync
 python main.py
 ```
 
@@ -97,5 +97,6 @@ Java, AWS & AI Engineering Lead
 ## License
 
 Internal / Educational Use
+
 
 
